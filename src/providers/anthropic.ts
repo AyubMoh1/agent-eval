@@ -7,27 +7,32 @@ import type {
 } from "../types.js";
 
 export class AnthropicProvider implements Provider {
-  private client: any;
+  private clientPromise: Promise<any>;
   private model: string;
 
   constructor(config: AgentConfig) {
     this.model = config.model;
-    try {
-      const { default: Anthropic } = require("@anthropic-ai/sdk");
-      this.client = new Anthropic({
-        ...(config.base_url ? { baseURL: config.base_url } : {}),
+    // @ts-ignore - @anthropic-ai/sdk is an optional peer dependency
+    this.clientPromise = import("@anthropic-ai/sdk")
+      .then(
+        ({ default: Anthropic }) =>
+          new Anthropic({
+            ...(config.base_url ? { baseURL: config.base_url } : {}),
+          })
+      )
+      .catch(() => {
+        throw new Error(
+          "Anthropic SDK not installed. Run: npm install @anthropic-ai/sdk"
+        );
       });
-    } catch {
-      throw new Error(
-        'Anthropic SDK not installed. Run: npm install @anthropic-ai/sdk'
-      );
-    }
   }
 
   async chat(
     messages: Message[],
     tools?: ToolDefinition[]
   ): Promise<ProviderResponse> {
+    const client = await this.clientPromise;
+
     const systemMsg = messages.find((m) => m.role === "system");
     const nonSystemMsgs = messages
       .filter((m) => m.role !== "system")
@@ -54,7 +59,7 @@ export class AnthropicProvider implements Provider {
     }));
 
     const start = performance.now();
-    const response = await this.client.messages.create({
+    const response = await client.messages.create({
       model: this.model,
       max_tokens: 4096,
       ...(systemMsg ? { system: systemMsg.content } : {}),

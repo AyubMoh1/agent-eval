@@ -1,6 +1,9 @@
 import type { AgentConfig } from "../types.js";
 import type { Provider } from "./base.js";
-import type { CustomChatFn } from "./custom.js";
+import { CustomProvider, type CustomChatFn } from "./custom.js";
+import { OpenAIProvider } from "./openai.js";
+import { AnthropicProvider } from "./anthropic.js";
+import { OllamaProvider } from "./ollama.js";
 
 export type { Provider } from "./base.js";
 export type { CustomChatFn } from "./custom.js";
@@ -10,23 +13,16 @@ export function createProvider(
   customFn?: CustomChatFn
 ): Provider {
   switch (config.provider) {
-    case "openai": {
-      const { OpenAIProvider } = require("./openai.js");
+    case "openai":
       return new OpenAIProvider(config);
-    }
-    case "anthropic": {
-      const { AnthropicProvider } = require("./anthropic.js");
+    case "anthropic":
       return new AnthropicProvider(config);
-    }
-    case "ollama": {
-      const { OllamaProvider } = require("./ollama.js");
+    case "ollama":
       return new OllamaProvider(config);
-    }
     case "custom": {
       if (!customFn) {
         throw new Error("Custom provider requires a chat function");
       }
-      const { CustomProvider } = require("./custom.js");
       return new CustomProvider(customFn);
     }
     default:
