@@ -7,25 +7,25 @@ import type {
 } from "../types.js";
 
 export class OpenAIProvider implements Provider {
-  private client: any;
+  private clientPromise: Promise<any>;
   private model: string;
 
   constructor(config: AgentConfig) {
     this.model = config.model;
-    try {
-      const { default: OpenAI } = require("openai");
-      this.client = new OpenAI({ baseURL: config.base_url });
-    } catch {
-      throw new Error(
-        'OpenAI SDK not installed. Run: npm install openai'
-      );
-    }
+    // @ts-ignore - openai is an optional peer dependency
+    this.clientPromise = import("openai")
+      .then(({ default: OpenAI }) => new OpenAI({ baseURL: config.base_url }))
+      .catch(() => {
+        throw new Error("OpenAI SDK not installed. Run: npm install openai");
+      });
   }
 
   async chat(
     messages: Message[],
     tools?: ToolDefinition[]
   ): Promise<ProviderResponse> {
+    const client = await this.clientPromise;
+
     const openaiTools = tools?.map((t) => ({
       type: "function" as const,
       function: {
@@ -36,7 +36,7 @@ export class OpenAIProvider implements Provider {
     }));
 
     const start = performance.now();
-    const response = await this.client.chat.completions.create({
+    const response = await client.chat.completions.create({
       model: this.model,
       messages: messages.map((m) => ({
         role: m.role,
