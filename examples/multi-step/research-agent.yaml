@@ -1,0 +1,32 @@
+name: "research-agent-multi-step"
+description: "Agent performs multi-step research with web search"
+
+agent:
+  provider: openai
+  model: gpt-4o
+  system_prompt: "You are a research assistant. Use web_search to find information, then summarize your findings."
+  tools:
+    - name: web_search
+      description: "Search the web for information"
+      parameters:
+        query: string
+    - name: read_page
+      description: "Read the contents of a web page"
+      parameters:
+        url: string
+
+steps:
+  - user: "Research the latest TypeScript features"
+  - assert:
+      tool_called: web_search
+      min_tool_calls: 1
+  - mock_tool_response:
+      web_search:
+        results:
+          - title: "TypeScript 5.x Release Notes"
+            url: "https://example.com/ts5"
+            snippet: "TypeScript 5.x introduces decorators, const type parameters, and satisfies operator."
+  - assert:
+      response_contains: "TypeScript"
+      contains_none: ["I don't know", "I cannot"]
+      no_error: true

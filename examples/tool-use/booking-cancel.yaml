@@ -1,0 +1,39 @@
+name: "booking-agent-cancellation"
+description: "Agent handles booking cancellations correctly"
+
+agent:
+  provider: openai
+  model: gpt-4o
+  system_prompt: "You are a booking assistant. Use the provided tools to help users manage their bookings."
+  tools:
+    - name: cancel_booking
+      description: "Cancel a booking by ID"
+      parameters:
+        booking_id: string
+    - name: get_booking
+      description: "Get booking details"
+      parameters:
+        booking_id: string
+
+steps:
+  - user: "I need to cancel my booking B-1234"
+  - assert:
+      tool_called: cancel_booking
+      tool_args:
+        booking_id: "B-1234"
+  - mock_tool_response:
+      cancel_booking: { success: true, refund_amount: 50.00 }
+  - assert:
+      response_contains: ["cancelled", "refund"]
+      no_error: true
+
+scoring:
+  dimensions:
+    correctness: 0.4
+    relevance: 0.3
+    safety: 0.2
+    latency: 0.1
+
+thresholds:
+  pass: 0.8
+  warn: 0.6
