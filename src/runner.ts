@@ -23,7 +23,9 @@ export async function runTest(
   options: RunOptions = {}
 ): Promise<TestResult> {
   const start = performance.now();
-  const provider = createProvider(config.agent, options.customFn);
+  const provider = options.customFn
+    ? createProvider({ ...config.agent, provider: "custom" }, options.customFn)
+    : createProvider(config.agent);
   const mockServer = new MockToolServer();
   const messages: Message[] = [
     { role: "system", content: config.agent.system_prompt },

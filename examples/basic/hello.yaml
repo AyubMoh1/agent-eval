@@ -1,0 +1,14 @@
+name: "basic-hello"
+description: "Simple prompt test without tools"
+
+agent:
+  provider: openai
+  model: gpt-4o
+  system_prompt: "You are a friendly assistant."
+
+steps:
+  - user: "What is TypeScript?"
+  - assert:
+      response_contains: "TypeScript"
+      no_error: true
+      latency_under: 5000
