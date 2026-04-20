@@ -116,6 +116,68 @@ describe("runTest", () => {
     expect(result.steps[3].assertions[0].passed).toBe(true);
   });
 
+  it("preserves assistant tool-call state for follow-up turns", async () => {
+    const providerCalls: Message[][] = [];
+    let callIndex = 0;
+
+    const config: TestConfig = {
+      ...baseConfig,
+      agent: {
+        ...baseConfig.agent,
+        tools: [
+          { name: "cancel_booking", description: "Cancel", parameters: { booking_id: "string" } },
+        ],
+      },
+      steps: [
+        { user: "Cancel booking B-1234" },
+        {
+          mock_tool_response: {
+            cancel_booking: { success: true, refund: 50 },
+          },
+        },
+      ],
+    };
+
+    await runTest(config, {
+      customFn: async (messages) => {
+        providerCalls.push(JSON.parse(JSON.stringify(messages)));
+
+        const responses: ProviderResponse[] = [
+          {
+            content: "",
+            toolCalls: [
+              { id: "tc_1", name: "cancel_booking", arguments: { booking_id: "B-1234" } },
+            ],
+            usage: { promptTokens: 20, completionTokens: 10, totalTokens: 30 },
+            latencyMs: 200,
+          },
+          {
+            content: "Your booking has been cancelled. You'll receive a $50 refund.",
+            toolCalls: [],
+            usage: { promptTokens: 30, completionTokens: 15, totalTokens: 45 },
+            latencyMs: 150,
+          },
+        ];
+
+        return responses[callIndex++] ?? responses[responses.length - 1];
+      },
+    });
+
+    expect(providerCalls).toHaveLength(2);
+    expect(providerCalls[1][2]).toEqual({
+      role: "assistant",
+      content: "",
+      toolCalls: [
+        { id: "tc_1", name: "cancel_booking", arguments: { booking_id: "B-1234" } },
+      ],
+    });
+    expect(providerCalls[1][3]).toEqual({
+      role: "tool",
+      content: JSON.stringify({ success: true, refund: 50 }),
+      tool_call_id: "tc_1",
+    });
+  });
+
   it("returns error when assert before any response", async () => {
     const config: TestConfig = {
       ...baseConfig,

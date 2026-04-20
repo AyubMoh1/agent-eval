@@ -38,11 +38,28 @@ export class OpenAIProvider implements Provider {
     const start = performance.now();
     const response = await client.chat.completions.create({
       model: this.model,
-      messages: messages.map((m) => ({
-        role: m.role,
-        content: m.content,
-        ...(m.tool_call_id ? { tool_call_id: m.tool_call_id } : {}),
-      })),
+      messages: messages.map((m) => {
+        if (m.role === "assistant" && m.toolCalls?.length) {
+          return {
+            role: "assistant" as const,
+            content: m.content || null,
+            tool_calls: m.toolCalls.map((tc) => ({
+              id: tc.id,
+              type: "function" as const,
+              function: {
+                name: tc.name,
+                arguments: JSON.stringify(tc.arguments),
+              },
+            })),
+          };
+        }
+
+        return {
+          role: m.role,
+          content: m.content,
+          ...(m.tool_call_id ? { tool_call_id: m.tool_call_id } : {}),
+        };
+      }),
       ...(openaiTools?.length ? { tools: openaiTools } : {}),
     });
     const latencyMs = performance.now() - start;
