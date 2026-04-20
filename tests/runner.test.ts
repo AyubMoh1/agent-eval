@@ -191,6 +191,92 @@ describe("runTest", () => {
     expect(result.passed).toBe(false);
     expect(result.error).toContain("no prior response");
   });
+
+  it("computes aggregate scores and passes when threshold is met", async () => {
+    const config: TestConfig = {
+      ...baseConfig,
+      steps: [{ user: "Hello" }, { assert: { response_contains: "hello" } }],
+      scoring: {
+        dimensions: {
+          correctness: 0.6,
+          relevance: 0.4,
+        },
+      },
+      thresholds: {
+        pass: 0.8,
+      },
+    };
+
+    const result = await runTest(config, {
+      customFn: mockProvider([
+        {
+          content: "Hello there!",
+          toolCalls: [],
+          usage: { promptTokens: 10, completionTokens: 5, totalTokens: 15 },
+          latencyMs: 100,
+        },
+        {
+          content: '{"score": 0.9, "reasoning": "correct"}',
+          toolCalls: [],
+          usage: { promptTokens: 5, completionTokens: 5, totalTokens: 10 },
+          latencyMs: 50,
+        },
+        {
+          content: '{"score": 0.8, "reasoning": "relevant"}',
+          toolCalls: [],
+          usage: { promptTokens: 5, completionTokens: 5, totalTokens: 10 },
+          latencyMs: 50,
+        },
+      ]),
+    });
+
+    expect(result.passed).toBe(true);
+    expect(result.aggregateScore).toBeCloseTo(0.86);
+    expect(result.steps[1].scores).toHaveLength(2);
+  });
+
+  it("fails when aggregate score is below the pass threshold", async () => {
+    const config: TestConfig = {
+      ...baseConfig,
+      steps: [{ user: "Hello" }, { assert: { response_contains: "hello" } }],
+      scoring: {
+        dimensions: {
+          correctness: 0.5,
+          relevance: 0.5,
+        },
+      },
+      thresholds: {
+        pass: 0.8,
+      },
+    };
+
+    const result = await runTest(config, {
+      customFn: mockProvider([
+        {
+          content: "Hello there!",
+          toolCalls: [],
+          usage: { promptTokens: 10, completionTokens: 5, totalTokens: 15 },
+          latencyMs: 100,
+        },
+        {
+          content: '{"score": 0.7, "reasoning": "mostly correct"}',
+          toolCalls: [],
+          usage: { promptTokens: 5, completionTokens: 5, totalTokens: 10 },
+          latencyMs: 50,
+        },
+        {
+          content: '{"score": 0.6, "reasoning": "partly relevant"}',
+          toolCalls: [],
+          usage: { promptTokens: 5, completionTokens: 5, totalTokens: 10 },
+          latencyMs: 50,
+        },
+      ]),
+    });
+
+    expect(result.passed).toBe(false);
+    expect(result.aggregateScore).toBeCloseTo(0.65);
+    expect(result.steps[1].assertions[0].passed).toBe(true);
+  });
 });
 
 describe("runTests", () => {
