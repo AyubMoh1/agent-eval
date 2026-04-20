@@ -33,8 +33,9 @@ export async function runTest(
   ];
   const stepResults: StepResult[] = [];
   let latestResponse: ProviderResponse | undefined;
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
-  try {
+  const execute = async (): Promise<Omit<TestResult, "durationMs" | "error">> => {
     for (let i = 0; i < config.steps.length; i++) {
       const step = config.steps[i];
       const stepResult = await executeStep(
@@ -90,31 +91,52 @@ export async function runTest(
         passed: allAssertionsPassed && passesThreshold,
         steps: stepResults,
         aggregateScore: aggregate,
-        durationMs: performance.now() - start,
       };
     }
+
+    const allAssertionsPassed = stepResults.every((sr) =>
+      sr.assertions.every((a) => a.passed)
+    );
+
+    return {
+      name: config.name,
+      description: config.description,
+      passed: allAssertionsPassed,
+      steps: stepResults,
+    };
+  };
+
+  try {
+    const result =
+      options.timeout != null
+        ? await new Promise<Omit<TestResult, "durationMs" | "error">>(
+            (resolve, reject) => {
+              timeoutId = setTimeout(() => {
+                reject(new Error(`Test timed out after ${options.timeout}ms`));
+              }, options.timeout);
+              execute().then(resolve, reject);
+            }
+          )
+        : await execute();
+
+    return {
+      ...result,
+      durationMs: performance.now() - start,
+    };
   } catch (err) {
     return {
       name: config.name,
       description: config.description,
       passed: false,
-      steps: stepResults,
+      steps: [...stepResults],
       durationMs: performance.now() - start,
       error: err instanceof Error ? err.message : String(err),
     };
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
   }
-
-  const allAssertionsPassed = stepResults.every((sr) =>
-    sr.assertions.every((a) => a.passed)
-  );
-
-  return {
-    name: config.name,
-    description: config.description,
-    passed: allAssertionsPassed,
-    steps: stepResults,
-    durationMs: performance.now() - start,
-  };
 }
 
 function toAssistantMessage(response: ProviderResponse): Message {
