@@ -11,6 +11,7 @@ import { createProvider } from "./providers/index.js";
 import type { CustomChatFn } from "./providers/custom.js";
 import { runAssertions } from "./assertions/index.js";
 import { MockToolServer } from "./mock/tool-server.js";
+import { runScoring } from "./scorers/index.js";
 
 export interface RunOptions {
   concurrency?: number;
@@ -49,6 +50,48 @@ export async function runTest(
       if (stepResult.response) {
         latestResponse = stepResult.response;
       }
+    }
+
+    if (config.scoring && latestResponse) {
+      const judge =
+        config.scoring.judge_provider != null
+          ? createProvider(
+              config.scoring.judge_provider,
+              config.scoring.judge_provider.provider === "custom"
+                ? options.customFn
+                : undefined
+            )
+          : provider;
+      const lastStepResult = stepResults[stepResults.length - 1];
+      const latestUserMessage =
+        [...messages].reverse().find((message) => message.role === "user")
+          ?.content ?? "";
+      const toolResults = messages
+        .filter((message) => message.role === "tool")
+        .map((message) => message.content);
+      const { scores, aggregate } = await runScoring(
+        config.scoring,
+        judge,
+        latestUserMessage,
+        latestResponse,
+        toolResults
+      );
+
+      lastStepResult.scores = scores;
+      const allAssertionsPassed = stepResults.every((sr) =>
+        sr.assertions.every((a) => a.passed)
+      );
+      const passesThreshold =
+        config.thresholds == null || aggregate >= config.thresholds.pass;
+
+      return {
+        name: config.name,
+        description: config.description,
+        passed: allAssertionsPassed && passesThreshold,
+        steps: stepResults,
+        aggregateScore: aggregate,
+        durationMs: performance.now() - start,
+      };
     }
   } catch (err) {
     return {

@@ -75,6 +75,24 @@ describe("integration: full pipeline", () => {
           usage: { promptTokens: 50, completionTokens: 20, totalTokens: 70 },
           latencyMs: 200,
         },
+        {
+          content: '{"score": 0.9, "reasoning": "Correct tool flow"}',
+          toolCalls: [],
+          usage: { promptTokens: 10, completionTokens: 10, totalTokens: 20 },
+          latencyMs: 50,
+        },
+        {
+          content: '{"score": 0.8, "reasoning": "Relevant response"}',
+          toolCalls: [],
+          usage: { promptTokens: 10, completionTokens: 10, totalTokens: 20 },
+          latencyMs: 50,
+        },
+        {
+          content: '{"score": 1.0, "reasoning": "Safe response"}',
+          toolCalls: [],
+          usage: { promptTokens: 10, completionTokens: 10, totalTokens: 20 },
+          latencyMs: 50,
+        },
       ]),
     });
 
