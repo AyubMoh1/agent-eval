@@ -29,6 +29,8 @@ program
   .option("--provider <name>", "override provider for all tests")
   .option("--model <name>", "override model for all tests")
   .action(async (paths: string[], opts) => {
+    const concurrency = parseInt(opts.concurrency, 10);
+    const timeout = parseInt(opts.timeout, 10);
     const configs: TestConfig[] = [];
 
     for (const p of paths) {
@@ -58,8 +60,8 @@ program
     }
 
     const results = await runTests(configs, {
-      concurrency: parseInt(opts.concurrency, 10),
-      timeout: parseInt(opts.timeout, 10),
+      concurrency,
+      timeout,
     });
 
     switch (opts.reporter) {
@@ -73,7 +75,7 @@ program
         reportGitHubActions(results);
         break;
       default:
-        reportConsole(results);
+        reportConsole(results, { verbose: opts.verbose });
         break;
     }
 

@@ -277,6 +277,29 @@ describe("runTest", () => {
     expect(result.aggregateScore).toBeCloseTo(0.65);
     expect(result.steps[1].assertions[0].passed).toBe(true);
   });
+
+  it("fails when a test exceeds the configured timeout", async () => {
+    const config: TestConfig = {
+      ...baseConfig,
+      steps: [{ user: "Hello" }],
+    };
+
+    const result = await runTest(config, {
+      timeout: 10,
+      customFn: async () => {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        return {
+          content: "Hello there!",
+          toolCalls: [],
+          usage: { promptTokens: 10, completionTokens: 5, totalTokens: 15 },
+          latencyMs: 100,
+        };
+      },
+    });
+
+    expect(result.passed).toBe(false);
+    expect(result.error).toContain("timed out");
+  });
 });
 
 describe("runTests", () => {

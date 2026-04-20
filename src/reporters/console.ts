@@ -1,7 +1,14 @@
 import chalk from "chalk";
 import type { TestResult } from "../types.js";
 
-export function reportConsole(results: TestResult[]): void {
+export interface ConsoleReporterOptions {
+  verbose?: boolean;
+}
+
+export function reportConsole(
+  results: TestResult[],
+  options: ConsoleReporterOptions = {}
+): void {
   console.log();
 
   for (const test of results) {
@@ -19,6 +26,23 @@ export function reportConsole(results: TestResult[]): void {
     }
 
     for (const step of test.steps) {
+      if (options.verbose && step.response) {
+        if (step.response.content) {
+          console.log(chalk.dim("  response:"));
+          for (const line of step.response.content.split("\n")) {
+            console.log(chalk.dim(`    ${line}`));
+          }
+        }
+
+        for (const toolCall of step.response.toolCalls) {
+          console.log(
+            chalk.dim(
+              `  tool: ${toolCall.name} ${JSON.stringify(toolCall.arguments)}`
+            )
+          );
+        }
+      }
+
       for (const a of step.assertions) {
         const aIcon = a.passed ? chalk.green("  ✓") : chalk.red("  ✗");
         console.log(`${aIcon} ${a.type}: ${a.message}`);
