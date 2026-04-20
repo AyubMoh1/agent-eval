@@ -74,6 +74,14 @@ export async function runTest(
   };
 }
 
+function toAssistantMessage(response: ProviderResponse): Message {
+  return {
+    role: "assistant",
+    content: response.content,
+    ...(response.toolCalls.length > 0 ? { toolCalls: response.toolCalls } : {}),
+  };
+}
+
 async function executeStep(
   step: Step,
   index: number,
@@ -87,7 +95,7 @@ async function executeStep(
   if ("user" in step) {
     messages.push({ role: "user", content: step.user });
     const response = await provider.chat(messages, config.agent.tools);
-    messages.push({ role: "assistant", content: response.content });
+    messages.push(toAssistantMessage(response));
     return {
       stepIndex: index,
       step,
@@ -132,7 +140,7 @@ async function executeStep(
         });
       }
       const response = await provider.chat(messages, config.agent.tools);
-      messages.push({ role: "assistant", content: response.content });
+      messages.push(toAssistantMessage(response));
       return {
         stepIndex: index,
         step,

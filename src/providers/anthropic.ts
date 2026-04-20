@@ -49,6 +49,22 @@ export class AnthropicProvider implements Provider {
             ],
           };
         }
+        if (m.role === "assistant" && m.toolCalls?.length) {
+          return {
+            role: "assistant" as const,
+            content: [
+              ...(m.content
+                ? [{ type: "text" as const, text: m.content }]
+                : []),
+              ...m.toolCalls.map((tc) => ({
+                type: "tool_use" as const,
+                id: tc.id,
+                name: tc.name,
+                input: tc.arguments,
+              })),
+            ],
+          };
+        }
         return { role: m.role as "user" | "assistant", content: m.content };
       });
 
