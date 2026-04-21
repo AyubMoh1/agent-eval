@@ -141,6 +141,30 @@ describe("content assertions", () => {
     );
     expect(results[0].passed).toBe(false);
   });
+
+  it("response_sentiment passes for positive sentiment", () => {
+    const results = runAssertions(
+      { response_sentiment: "positive" },
+      makeResponse({ content: "Great news. Happy to help and thanks again." })
+    );
+    expect(results[0].passed).toBe(true);
+  });
+
+  it("response_sentiment passes for negative sentiment", () => {
+    const results = runAssertions(
+      { response_sentiment: "negative" },
+      makeResponse({ content: "Unfortunately, I am sorry about this error." })
+    );
+    expect(results[0].passed).toBe(true);
+  });
+
+  it("response_sentiment passes for neutral sentiment", () => {
+    const results = runAssertions(
+      { response_sentiment: "neutral" },
+      makeResponse({ content: "The booking ID is B-1234." })
+    );
+    expect(results[0].passed).toBe(true);
+  });
 });
 
 describe("cost assertions", () => {

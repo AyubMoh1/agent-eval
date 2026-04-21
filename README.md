@@ -74,6 +74,7 @@ thresholds:
 | `response_matches` | string | Regex match on response |
 | `response_length` | `{min?, max?}` | Response character length bounds |
 | `no_error` | boolean | No error indicators in response |
+| `response_sentiment` | `"positive"|"negative"|"neutral"` | Heuristic sentiment classification |
 | `latency_under` | number (ms) | Response latency threshold |
 | `tokens_under` | number | Total token threshold |
 | `cost_under` | number ($) | Estimated cost threshold |
