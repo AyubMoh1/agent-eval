@@ -17,6 +17,7 @@ import {
   assertLength,
   assertNoError,
 } from "./content.js";
+import { assertSentiment } from "./sentiment.js";
 import {
   assertLatencyUnder,
   assertTokensUnder,
@@ -50,6 +51,8 @@ export function runAssertions(
   if (config.response_length != null)
     results.push(assertLength(response, config.response_length));
   if (config.no_error === true) results.push(assertNoError(response));
+  if (config.response_sentiment != null)
+    results.push(assertSentiment(response, config.response_sentiment));
 
   if (config.latency_under != null)
     results.push(assertLatencyUnder(response, config.latency_under));
