@@ -26,6 +26,7 @@ agent:
   provider: openai
   model: gpt-4o
   system_prompt: "You are a booking assistant."
+  temperature: 0.2
   tools:
     - name: cancel_booking
       description: "Cancel a booking by ID"
